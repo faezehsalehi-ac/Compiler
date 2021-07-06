@@ -1,0 +1,28 @@
+double a
+double b
+double c
+double d
+string st
+print('a ra vared kon')
+a:=input()
+print('b ra vared kon')
+b:=input()
+c:=2+3*(a-3)+8*b
+print(c)
+print('d ra vared kon')
+d:=input()
+print('group')
+while c<d
+print('d')
+print(d)
+d:=d-1
+}
+else
+while c>d
+print('c')
+print(c)
+c:=c-1
+}
+}
+print(3.13)
+print('end')

@@ -1,0 +1,25 @@
+SPRIM->SPRIM S | S
+S-> DEFINITION | VALUE | CHOP | REPEAT } OTHERWISE
+DEFINITION->SD ID
+SD -> string | double
+VALUE-> ID:='RESHTE' | ID:=E | ID:=input()
+E->-E | E+T | E-T | T
+T->T*F | T/F | F
+F-> NUMBER DECIMAL | (E)
+DECIMAL->. NUMBER | pooch
+CHOP->print ( MM TYPE MM )
+MM->' | pooch
+TYPE->ADAD | ID
+ADAD->NUMBER DECIMAL
+REPEAT->M1
+M1->M2 SPRIM
+M2->while CONDITION
+CONDITION->KIND < KIND | KIND > KIND | KIND <= KIND | KIND >= KIND | KIND <> KIND | KIND = KIND
+KIND->ADAD | ID
+OTHERWISE->else SPRIM  } | pooch
+NUMBER->0 | 1 | 2 | 3 | ...| 9
+ID->[a-zA-Z]+
+RESHTE->[a-zA-Z]+
+
+
+

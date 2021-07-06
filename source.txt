@@ -1,0 +1,507 @@
+import collections
+import re
+import sys
+import time
+import ply.lex as lex
+simbolTable={}
+error_list=[]
+simbolTable =collections.OrderedDict()
+memID=0
+lbl_counter=0
+f2 = open("Intermediate_code.txt", "w")
+f2.close()
+f2 = open("Intermediate_code.txt", "w")
+f2.writelines("CODE SEGMENT:\n")
+tokens = ['STRING','DOUBLE','INPUT','PRINT','WHILE','ELSE','NOTEQUAL','AGRATER','GRATER','ALESS','LESS','EQUAL'
+         ,'ASI','POINT','KOROSHE','COTEITION','PLUS','MINUS','TIMES','DIVIDE','LPAREN','RPAREN','ID','NUMBER','RESHTE' ]
+def t_STRING(t):
+    r'string'
+    return t
+def t_DOUBLE(t):
+    r'double'
+    return t
+def t_INPUT(t):
+    r'input'
+    return t
+def t_PRINT(t):
+    r'print'
+    return t
+def t_WHILE(t):
+    r'while'
+    return t
+def t_ELSE(t):
+    r'else'
+    return t
+def t_NOTEQUAL(t):
+    r'<>'
+    return t
+def t_AGRATER(t):
+    r'>='
+    return t
+def t_GRATER(t):
+    r'>'
+    return t
+def t_ALESS(t):
+    r'<='
+    return t
+def t_LESS(t):
+    r'<'
+    return t
+def t_EQUAL(t):
+    r':='
+    return t
+def t_ASI(t):
+    r'='
+    return t
+def t_POINT(t):
+    r'\.+'
+    return t
+def t_KOROSHE(t):
+    r'}' 
+    return t
+def t_COTEITION(t):
+    r'\'' 
+    return t
+def t_PLUS(t):
+    r'\+'
+    return t
+def t_MINUS(t):
+    r'-'
+    return t
+def t_TIMES(t):
+    r'\*'
+    return t
+def t_DIVIDE(t):
+    r'/'
+    return t
+def t_LPAREN(t):
+    r'\('
+    return t
+def t_RPAREN(t):
+    r'\)'
+    return t
+t_ignore="\t "
+def t_ID(t):
+    r'[a-zA-Z][a-zA-Z0-9 _\t]*'
+    return t
+def t_RESHTE(t):
+    r'[a-zA-Z][a-zA-Z0-9 _\t]*'
+    return t
+def t_NUMBER(t):
+      r'\d+'
+      t.value = int(t.value)
+      return t
+def t_newline(t):
+    r'\n+'
+    t.lexer.lineno += t.value.count("\n")
+def t_error(t):
+    print("error ast")
+    t.lexer.skip(1)
+import ply.lex as lex
+lex.lex()
+precedence = (
+    ('left','PLUS','MINUS'),
+    ('left','TIMES','DIVIDE'),
+    ('right','UMINUS')
+    )
+def memAloc():
+    global memID
+    memID += 1
+    return '['+str(memID-1)+']'
+def lable_counter():
+      global lbl_counter
+      lbl_counter=lbl_counter+1
+      return str(lbl_counter)
+def error():
+    f2.close()
+    f3= open("Intermediate_code.txt", "w")
+    f3.close()  
+    print("ERROR: Can not make intermediate code")
+    line_c= ''.join(error_list)
+    print(line_c)
+    time.sleep(10)
+    sys.exit()
+def p_error(p):
+    if p:
+        print("Syntax error at '%s'" % p.value)
+    else:
+        print("Syntax error at EOF")
+def p_SPRIM(p):
+    r'''SPRIM : SPRIM S 
+              | S'''
+def p_S1(p):
+    r'S : DEFINITION'
+def p_DEFINITION(p):
+    r'DEFINITION : SD ID'
+    if p[2] not in simbolTable:
+       simbolTable[p[2]]=['0',p[1],memAloc()]
+    else:
+       error_list.append(p[2]+": Variable is defined twice\n")   
+def p_SD(p):
+    r'''SD : STRING
+           | DOUBLE'''
+    p[0]=p[1]
+def p_S2(p):
+    r'S : VALUE'
+def p_VALUE2(p):
+    r'VALUE : ID EQUAL COTEITION RESHTE COTEITION'
+    if p[1] in simbolTable:
+        if(simbolTable[p[1]][1]=='string'):
+          f2.writelines(simbolTable[p[1]][2]+"=\'"+str(p[4])+'\'\n')
+        else:
+          error_list.append(p[1]+": variable type is string but its  value is not string\n")
+    else:
+        error_list.append(p[1]+": Undefined variable\n")
+def p_VALUE1(p):
+    r'VALUE : ID EQUAL E'
+    if p[1] in simbolTable:
+       if(simbolTable[p[1]][1]=='double'):
+         if type(p[3]) == tuple:
+            f2.writelines(p[3][0])
+            f2.writelines(simbolTable[p[1]][2]+"="+str(p[3][1])+'\n')
+         else:
+            f2.writelines(simbolTable[p[1]][2]+"="+str(p[3])+'\n')
+       else:
+         error_list.append(p[1]+" :variable type is double but its  value isnot double\n")
+    else:
+        error_list.append(p[1]+": Undefined variable\n")
+def p_E1(p):
+    r'E : MINUS E %prec UMINUS'
+    p[0]=-p[2]
+def p_E2(p):
+    r'E : E PLUS T'
+    oprand1 =''
+    oprand2 =''
+    beforCode = ''
+    if type(p[1]) == tuple:
+        oprand1 = p[1][1]
+        beforCode += p[1][0]
+    else:
+        oprand1 = p[1]
+    if type(p[3]) == tuple:
+        oprand2 = p[3][1]
+        beforCode += p[3][0]
+    else:
+        oprand2 = p[3]
+    mem = memAloc()
+    p[0] = (beforCode + 'ADD ' + str(oprand1) + ',' + str(oprand2) + ','+ mem+'\n',mem )
+def p_E3(p):
+    r'E : E MINUS T'
+    oprand1 =''
+    oprand2 =''
+    beforCode = ''
+    if type(p[1]) == tuple:
+        oprand1 = p[1][1]
+        beforCode += p[1][0]
+    else:
+        oprand1 = p[1]
+    if type(p[3]) == tuple:
+        oprand2 = p[3][1]
+        beforCode += p[3][0]
+    else:
+        oprand2 = p[3]
+    mem = memAloc()
+    p[0] = (beforCode + 'MIN ' + str(oprand1) + ',' + str(oprand2) + ','+ mem+'\n',mem )
+def p_E4(p):
+    r'E : T'
+    p[0]=p[1]
+def p_T1(p):
+    r'T : T TIMES F'
+    oprand1 =''
+    oprand2 =''
+    beforCode = ''
+    if type(p[1]) == tuple:
+        oprand1 = p[1][1]
+        beforCode += p[1][0]
+    else:
+        oprand1 = p[1]
+    if type(p[3]) == tuple:
+        oprand2 = p[3][1]
+        beforCode += p[3][0]
+    else:
+        oprand2 = p[3]
+    mem = memAloc()
+    p[0] = (beforCode + 'MUL ' + str(oprand1) + ',' + str(oprand2) + ','+ mem+'\n',mem )
+def p_T2(p):
+    r'T : T DIVIDE F'
+    oprand1 =''
+    oprand2 =''
+    beforCode = ''
+    if type(p[1]) == tuple:
+        oprand1 = p[1][1]
+        beforCode += p[1][0]
+    else:
+        oprand1 = p[1]
+    if type(p[3]) == tuple:
+        oprand2 = p[3][1]
+        beforCode += p[3][0]
+    else:
+        oprand2 = p[3]
+    mem = memAloc()
+    p[0] = (beforCode + 'DIV ' + str(oprand1) + ',' + str(oprand2) + ','+ mem+'\n',mem )
+def p_T3(p):
+    r'T : F'
+    p[0]= p[1]
+def p_F1(p):
+    r'F : NUMBER DECIMAL '
+    p[0]=p[1]+p[2]/(10**len(str(p[2])))
+def p_F2(p):
+    r'F : LPAREN E RPAREN'
+    p[0]=p[2]
+def p_F3(p):
+    r'F : ID'
+    if p[1] in simbolTable:
+       p[0]=simbolTable[p[1]][2]
+    else:
+       error_list.append(p[1]+": Undefined variable\n")
+def p_DECIMAL1(p):
+    r'DECIMAL : POINT NUMBER'
+    p[0]=p[2]
+def p_DECIMAL2(p):
+    r'DECIMAL :  '
+    p[0]=0                                  
+def p_VALUE3(p):
+    r'VALUE : ID EQUAL INPUT LPAREN RPAREN'
+    if p[1] in simbolTable:
+       p[0]=("IN "+simbolTable[p[1]][2])
+       f2.writelines(p[0]+'\n')
+    else:
+       error_list.append(p[1]+": Undefined variable\n")
+def p_S4(p):
+    r'S : CHOP'
+    f2.writelines("PRINT ("+p[1]+")\n")
+def p_CHOP(p):
+    r'CHOP : PRINT LPAREN MM TYPE MM RPAREN'
+    if(p[3]=='0'):
+      if (type(p[4])==str):
+         if p[4] in simbolTable:
+            p[0]=simbolTable[p[4]][2]
+         else:
+            error_list.append(p[1]+": Undefined variable\n")
+      else:
+         p[0]=str(p[4])
+    else:
+      p[0]=('\''+p[4]+'\'')
+def p_MM1(p):
+    r'MM : COTEITION'
+    p[0]=p[1]
+def p_MM2(p):
+    r'MM : '
+    p[0]='0'
+def p_TYPE1(p):
+    r'''TYPE : ADAD
+             | ID
+             | RESHTE'''
+    p[0]=p[1]
+def p_ADAD(p):
+    r'ADAD : NUMBER DECIMAL'
+    p[0]= p[1]+p[2]/(10**len(str(p[2])))
+def p_S3(p):
+    'S : REPEAT KOROSHE OTHERWISE'
+    p[0]=p[1]
+    f2.writelines('LABLE'+p[0][13]+':\n')
+def p_REPEAT(p):
+    'REPEAT : M1'
+    p[0]=p[1]
+    f2.writelines('JUMP '+'LABLE'+p[1][7]+'\n'+'LABLE'+p[1][4]+':\n')
+def p_M1(p):
+    'M1 : M2 SPRIM'             
+    p[0]=p[1]
+def p_M2(p):
+    r'M2 : WHILE CONDITION'
+    p[0]=['IF ',p[2],' JUMP ','LABLE',lable_counter(),'\n','LABLE',lable_counter(),':\n',
+          'IF ',p[2],' JUMP ','LABLE',lable_counter(),'\n']
+    f2.writelines(p[0])
+def p_CONDITION(p):
+    '''CONDITION : KIND LESS KIND
+                 | KIND GRATER KIND
+                 | KIND ALESS KIND
+                 | KIND AGRATER KIND
+                 | KIND NOTEQUAL KIND
+                 | KIND ASI KIND'''
+    if(p[2]=='<'):
+      p[0]=(str(p[1])+'>='+str(p[3]))
+    elif(p[2]=='>'):
+      p[0]=(str(p[1])+'<='+str(p[3]))
+    elif(p[2]=='>='):
+      p[0]=(str(p[1])+'<'+str(p[3]))
+    elif(p[2]=='<='):
+      p[0]=(str(p[1])+'>'+str(p[3]))   
+    elif(p[2]=='<>'):  
+      p[0]=(str(p[1])+'=='+str(p[3]))
+    else :
+      p[0]=(str(p[1])+'!='+str(p[3]))
+def p_KIND1(p):
+    r'KIND : ADAD'
+    p[0]=p[1]
+def p_KIND2(p):
+    r'KIND : ID'
+    if p[1] in simbolTable:
+       p[0]=simbolTable[p[1]][2]
+    else:
+       error_list.append(p[1]+": Undefined variable\n")
+def p_OTHERWISE1(p):
+    'OTHERWISE : ELSE SPRIM  KOROSHE'
+def p_OTHERWISE2(p):
+    'OTHERWISE : '
+    f2.writelines('NOP\n')
+import ply.yacc as yacc
+f1=open("instruction.txt","r")
+line=f1.readlines()
+line_c= ''.join(line)
+yacc.yacc(optimize=1)
+yacc.parse(line_c)
+f2.writelines("END\n")
+f2.writelines("DATA SEGMENT:\n")
+for key , value in simbolTable.items():
+    f2.writelines(value[2] +":"+str(value[0])+"\n")
+for i  in range(len(simbolTable),memID):
+    f2.writelines('['+str(i)+']' +":0"+"\n")
+f1.close()
+f2.close()
+if(len(error_list)!=0):
+   error()
+counter=0
+f_read=open("Intermediate_code.txt","r")
+line=f_read.readline()
+while(line!="DATA SEGMENT:\n"):
+      line=f_read.readline()
+line=f_read.readline()
+while(len(line)!=0):
+      counter=counter+1
+      line=f_read.readline()
+araye={}
+for i in range(0,counter):
+    araye[str(i)]=float(0)
+f_read.close()
+f_read1=open("Intermediate_code.txt","r")
+line1=f_read1.readline()
+line1=f_read1.readline()
+while(1):
+      order=line1
+      result=re.match("END",order)
+      if(result):
+        break
+      result=re.match("ADD ((\[(\d+)\])|(\d+|(\d+\.\d+))),((\[(\d+)\])|(\d+|(\d+\.\d+))),\[(\d+)\]",order)
+      if(result):
+        if(result.group(3)!=None):
+           a=araye[result.group(3)]
+        else:
+           a=float(result.group(4))
+        if(result.group(8)!=None):
+           b=araye[result.group(8)]
+        else:
+           b=float(result.group(9))
+        araye[result.group(11)]=a+b
+      result=re.match("MIN ((\[(\d+)\])|(\d+|(\d+\.\d+))),((\[(\d+)\])|(\d+|(\d+\.\d+))),\[(\d+)\]",order)
+      if(result):
+        if(result.group(3)!=None):
+           a=araye[result.group(3)]
+        else:
+           a=float(result.group(4))
+        if(result.group(8)!=None):
+           b=araye[result.group(8)]
+        else:
+           b=float(result.group(9))
+        araye[result.group(11)]=a-b
+      result=re.match("MUL ((\[(\d+)\])|(\d+|(\d+\.\d+))),((\[(\d+)\])|(\d+|(\d+\.\d+))),\[(\d+)\]",order)
+      if(result):
+        if(result.group(3)!=None):
+           a=araye[result.group(3)]
+        else:
+           a=float(result.group(4))
+        if(result.group(8)!=None):
+           b=araye[result.group(8)]
+        else:
+           b=float(result.group(9))
+        araye[result.group(11)]=a*b
+      result=re.match("DIV ((\[(\d+)\])|(\d+|(\d+\.\d+))),((\[(\d+)\])|(\d+|(\d+\.\d+))),\[(\d+)\]",order)
+      if(result):
+        if(result.group(3)!=None):
+           a=araye[result.group(3)]
+        else:
+           a=float(result.group(4))
+        if(result.group(8)!=None):
+           b=araye[result.group(8)]
+        else:
+           b=float(result.group(9))
+        araye[result.group(11)]=a/b
+      result=re.match("\[(\d+)\]=((\[(\d+)\])|(\d+[\.]?\d+)|('[a-zA-Z][a-zA-Z0-9 _\t]*'))\n",order)
+      if(result):
+          if(result.group(4)!=None):
+             araye[result.group(1)]=araye[result.group(4)]
+          elif(result.group(5)!=None):
+             araye[result.group(1)]=float(result.group(5))
+          else:
+             araye[result.group(1)]=result.group(6)
+      result=re.match("IN \[(\d+)\]",order)
+      if(result):
+         araye[result.group(1)]=float(input())
+      result=re.match("PRINT \(((\[(\d+)\])|(\d+|\d+\.\d+)|(\'([a-zA-Z][a-zA-Z0-9 _\t]*)\'))\)\n",order)
+      if(result):
+        if(result.group(3)!=None):
+            print(araye[result.group(3)])
+        elif(result.group(4)!=None):
+            print(result.group(4))
+        else:
+            print(result.group(6))
+      result=re.match("IF ((\[(\d+)\])|(\d+|(\d+\.\d+)))(<|>|<=|>=|!=|==)((\[(\d+)\])|(\d+|(\d+\.\d+))) JUMP (LABLE(\d+))\n",order)
+      if(result):
+           if(result.group(3)!=None):
+             a=araye[result.group(3)]
+           else:
+             a=float(result.group(4))
+           if(result.group(9)!=None):
+             b=araye[result.group(9)]
+           else:
+             b=float(result.group(10))
+          
+           if(result.group(6)=='<'):
+             if(a<b):
+               res='yes'
+             else:
+               res='no'
+           elif(result.group(6)=='>'):
+             if(a>b):
+              res='yes'
+             else:
+              res='no'
+           elif(result.group(6)=='<='):
+             if(a<=b):
+               res='yes'
+             else:
+               res='no'
+           elif(result.group(6)=='>='):
+             if(a>=b):
+              res='yes'
+             else:
+              res='no'
+           elif(result.group(6)=='!='):
+             if(a!=b):
+              res='yes'
+             else:
+              res='no'
+           else:
+             if(a==b):
+                res='yes'
+             else:
+                res='no'
+           if(res=='yes'):
+             f_read1.close();
+             f_read1=open("Intermediate_code.txt","r")
+             line1=f_read1.readline()
+             while(line1!=result.group(12)+":\n"):
+                  line1=f_read1.readline()
+      result=re.match("JUMP (LABLE(\d+))\n",order)
+      if(result):
+         f_read1.close();
+         f_read1=open("Intermediate_code.txt","r")
+         line1=f_read1.readline()
+         while(line1!=result.group(1)+":\n"):
+             line1=f_read1.readline()
+      line1=f_read1.readline()
+
+
+
+
+
